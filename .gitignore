@@ -3,4 +3,6 @@
 *.txt
 *.csv
 *.d2v
+*.DS_Store
+.ipynb_checkpoints/
 Patent_Literature_Search_Pairs/ 
