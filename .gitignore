@@ -1,0 +1,6 @@
+*.log
+*.pyc
+*.txt
+*.csv
+*.d2v
+Patent_Literature_Search_Pairs/ 
