@@ -4,5 +4,6 @@
 *.csv
 *.d2v
 *.DS_Store
+*.ipynb
 .ipynb_checkpoints/
 Patent_Literature_Search_Pairs/ 
