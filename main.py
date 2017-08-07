@@ -26,14 +26,14 @@ def run_pypatent():
 	retrieve_text_files()
 	logging.info("* FINISHED RETRIEVING ABSTRACTS !!! ")
 	#Step 3:
-	path_to_model = os.path.abspath(os.path.join(os.path.dirname(__file__), 'train', './a2v.d2v'))
-	if os.path.isfile(path_to_model):
-		logging.info("* A TRAINED MODEL ALREADY EXISTS !!!")
-		pass
-	elif: 
-		logging.info("* TRAINED MODEL NOT FOUND. TRAINING MODEL ... ")
-		train_d2v()
-		logging.info("* FINISHED TRAINING MODEL !!! ")
+	# path_to_model = os.path.abspath(os.path.join(os.path.dirname(__file__), 'train', './a2v.d2v'))
+	# if os.path.isfile(path_to_model):
+	# 	logging.info("* A TRAINED MODEL ALREADY EXISTS !!!")
+	# 	pass
+	# elif: 
+	# 	logging.info("* TRAINED MODEL NOT FOUND. TRAINING MODEL ... ")
+	# 	train_d2v()
+	# 	logging.info("* FINISHED TRAINING MODEL !!! ")
 
 
 

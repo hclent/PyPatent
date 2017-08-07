@@ -5,6 +5,10 @@
 *.d2v
 *.pdf
 *.DS_Store
+<<<<<<< HEAD
 TEXT_Files/
+=======
+*.ipynb
+>>>>>>> 367e453e5b2871c6a08d4e3b3a42ebc32134e572
 .ipynb_checkpoints/
 Patent_Literature_Search_Pairs/ 
