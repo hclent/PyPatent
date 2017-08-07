@@ -45,11 +45,11 @@ def pdf_to_text(path_to_pdf, name_of_pdf, patent_number):
 
 
 def convertPdfs():
-	all_patents_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), 'Patent_Literature_Search_Pairs')) 
+	all_patents_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), 'TEXT_Files')) 
 	patent_dirs = os.listdir(all_patents_dir)
 	for pd in patent_dirs: #E.g. #2 US200500blahblah-Description
 		try:
-			pd_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'Patent_Literature_Search_Pairs', pd))
+			pd_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'TEXT_Files', pd))
 		
 			patent_association = pd[:5] #grab first 5 chars to get patent number
 			patent_number = re.sub('[^\d]','', patent_association) #just keep #number
@@ -58,7 +58,9 @@ def convertPdfs():
 			for f in files:
 				if '.pdf' in f:
 					logging.info("writing to txt: " + str(f))
-					path_to_pdf = os.path.abspath(os.path.join(os.path.dirname(__file__), 'Patent_Literature_Search_Pairs', pd, f))
+					path_to_pdf = os.path.abspath(os.path.join(os.path.dirname(__file__), 'TEXT_Files', pd, f))
 					pdf_to_text(path_to_pdf, f, patent_number) #convert pdf to text
 		except Exception as e:
 			logging.info(e)
+
+convertPdfs()

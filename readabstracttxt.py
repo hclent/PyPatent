@@ -18,20 +18,18 @@ logging.basicConfig(level=logging.DEBUG,
 
 def retrieve_text_files():
 	logging.info("* Beginning retrieve_text_files(). Abstracts --> txt files ... ")
-	all_patents_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), 'Patent_Literature_Search_Pairs')) 
+	all_patents_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), 'TEXT_Files')) 
 	patent_dirs = os.listdir(all_patents_dir)
 
 	for pd in patent_dirs: #E.g. #2 US200500blahblah-Description
 		#Check to see if 'WOS Literature search' dir exists 
-		pd_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'Patent_Literature_Search_Pairs', pd, 'WOS Literature search'))
-		wos_exists = os.path.isdir(pd_path)
-		if wos_exists is True:
-			logging.info("WOS Literature search file exists")
-			pass
-		if wos_exists is False:
-			logging.info("No WOS Literature search file")
+		pd_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'TEXT_Files', pd))
+		dir_exists = os.path.isdir(pd_path)
+		if dir_exists is True:
+			logging.info("Directory " + str(pd)+ " exists!")
+		if dir_exists is False:
+			logging.info("Missing a directory")
 			#If it doesn't exist, just look in the patent directory (pd)
-			pd_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'Patent_Literature_Search_Pairs', pd))
 
 		#Init empty lists to append info to 
 		authors = []
@@ -49,11 +47,11 @@ def retrieve_text_files():
 			for txtfile in search_docs:
 				if fnmatch.fnmatch(txtfile, '*.txt'): #this ignores _DS_Store files 
 					f =  os.path.abspath(os.path.join(pd_path, txtfile))
+					print(f)
 					logging.info("reading file: " + str(f))
 					fulltext = open(f, 'r', encoding="ISO-8859-1")
 					readtext = fulltext.read()
 					recordtext = re.split('\_+', readtext) #split on "______" type things
-					
 					for record in recordtext:
 						if (len(record)) < 100: #if its too short, its probably empty
 							logging.info("Empty record. Skip.")
@@ -133,3 +131,5 @@ def retrieve_text_files():
 		except Exception as e: #probably a .DS_Store file
 			logging.info(e)
 
+
+retrieve_text_files()
