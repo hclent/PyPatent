@@ -3,6 +3,8 @@
 *.txt
 *.csv
 *.d2v
+*.pdf
 *.DS_Store
+TEXT_Files/
 .ipynb_checkpoints/
 Patent_Literature_Search_Pairs/ 
