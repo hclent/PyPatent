@@ -5,6 +5,7 @@
 *.d2v
 *.pdf
 *.DS_Store
+*.npy
 <<<<<<< HEAD
 TEXT_Files/
 =======
