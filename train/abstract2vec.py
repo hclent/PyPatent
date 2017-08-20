@@ -34,19 +34,16 @@ class LabeledLineSentence(object):
 
 
 def train_d2v():
-    #Obtain txt abstracts and txt patents 
     filedir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
     files = os.listdir(filedir)
 
     docLabels = [f for f in files if f.endswith('.txt')]
     data = []
     for doc in docLabels:
-        source = str("/Users/hclent/Desktop/PyPatent/train/" + doc)
+        source = os.path.abspath(os.path.join(os.path.dirname(__file__), doc))
         with open(source, "r") as f:
             the_text = f.read()
             data.append(the_text)
-        # with utils.smart_open(source) as fin:
-        #     data.append(io.BufferedReader.read(fin))
 
     logging.info("* Creating LabeledLineSentence Class ...")
     it = LabeledLineSentence(data, docLabels)
@@ -61,8 +58,9 @@ def train_d2v():
     for epoch in range(10):
        model.train(it)
        model.alpha -= 0.002 # decrease the learning rate
-       model.min_alpha = model.alpha # fix the learning rate, no deca
+       model.min_alpha = model.alpha # fix the learning rate, no decay
        model.train(it)
+
     model.save('./a2v.d2v')
     logging.info("* Saving Doc2Vec Model !!!")
 
@@ -138,7 +136,7 @@ def compare_patents_to_abstracts():
 
 
 
-compare_patents_to_abstracts()
+#compare_patents_to_abstracts()
 # model = load_model()
 # print(model.docvecs['4_99.txt_7'])
 # print (model.most_similar('invention'))
