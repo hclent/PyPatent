@@ -63,4 +63,4 @@ def convertPdfs():
 		except Exception as e:
 			logging.info(e)
 
-convertPdfs()
+#convertPdfs()

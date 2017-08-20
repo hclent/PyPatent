@@ -47,7 +47,7 @@ def retrieve_text_files():
 			for txtfile in search_docs:
 				if fnmatch.fnmatch(txtfile, '*.txt'): #this ignores _DS_Store files 
 					f =  os.path.abspath(os.path.join(pd_path, txtfile))
-					print(f)
+					#print(f)
 					logging.info("reading file: " + str(f))
 					fulltext = open(f, 'r', encoding="ISO-8859-1")
 					readtext = fulltext.read()
@@ -132,4 +132,5 @@ def retrieve_text_files():
 			logging.info(e)
 
 
-retrieve_text_files()
+#retrieve_text_files()
+
