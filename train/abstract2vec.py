@@ -1,45 +1,35 @@
-import os, nltk, csv, re 
+import os, nltk, csv, re, gensim, logging
 from os.path import isfile, join
 from random import shuffle
 from gensim import utils
 from gensim.models.doc2vec import LabeledSentence
 from gensim.models import Doc2Vec
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy import sparse
 
 #TO DO: remove stop words?????
 #TO DO: make sure input docs are formatted correctly
+#TO DO: Don't train on docs with all "Null"s 
 
-#TODO: Keep this file in the train folder!
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)-8s %(message)s',
+                    datefmt='%a, %d %b %Y %H:%M:%S',
+                    filename='.pypatent.log')
 
+
+'''
+Modified LabeledLineSentence Class from 
+https://medium.com/@klintcho/doc2vec-tutorial-using-gensim-ab3ac03d3a1
+
+Results in 1 vec per 1 doc, rather than 1 vec for each sentence in a doc.
+'''
 class LabeledLineSentence(object):
-    def __init__(self, sources):
-        self.sources = sources
-        
-        flipped = {}
-        
-        # make sure that keys are unique
-        for key, value in sources.items():
-            if value not in flipped:
-                flipped[value] = [key]
-            else:
-                raise Exception('Non-unique prefix encountered')
-    
+    def __init__(self, doc_list, labels_list):
+       self.labels_list = labels_list
+       self.doc_list = doc_list
     def __iter__(self):
-        for source, prefix in self.sources.items():
-            with utils.smart_open(source) as fin:
-                for item_no, line in enumerate(fin):
-                    yield LabeledSentence(utils.to_unicode(line).split(), [prefix + '_%s' % item_no])
-    
-    def to_array(self):
-        self.sentences = []
-        for source, prefix in self.sources.items():
-            with utils.smart_open(source) as fin:
-                for item_no, line in enumerate(fin):
-                    self.sentences.append(LabeledSentence(utils.to_unicode(line).split(), [prefix + '_%s' % item_no]))
-        return self.sentences
-    
-    def sentences_perm(self):
-        shuffle(self.sentences)
-        return self.sentences
+        for idx, doc in enumerate(self.doc_list):
+            yield LabeledSentence(doc.split(), [self.labels_list[idx]])
 
 
 
@@ -48,28 +38,40 @@ def train_d2v():
     filedir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
     files = os.listdir(filedir)
 
-    #Doc2Vec takes [['a', 'sentence'], 'and label']
     docLabels = [f for f in files if f.endswith('.txt')]
+    data = []
+    for doc in docLabels:
+        source = str("/Users/hclent/Desktop/PyPatent/train/" + doc)
+        with open(source, "r") as f:
+            the_text = f.read()
+            data.append(the_text)
+        # with utils.smart_open(source) as fin:
+        #     data.append(io.BufferedReader.read(fin))
 
-    sources = {}  #{'2_139.txt': '2_139.txt'}
-    for lable in docLabels:
-        sources[lable] = lable
-    sentences = LabeledLineSentence(sources)
-
+    logging.info("* Creating LabeledLineSentence Class ...")
+    it = LabeledLineSentence(data, docLabels)
+    logging.info("* Created LabeledLineSentences!!! ")
+   
+    logging.info("* Initializing Doc2Vec Model ... ")
+    model = gensim.models.Doc2Vec(size=300, window=10, min_count=5, workers=11,alpha=0.025, min_alpha=0.025) # use fixed learning rate
     
-    model = Doc2Vec(min_count=1, window=10, size=100, sample=1e-4, negative=5, workers=8)
-    model.build_vocab(sentences.to_array())
-    for epoch in range(10):
-        model.train(sentences.sentences_perm())
+    logging.info("* Training Doc2Vec Model ... ")
+    model.build_vocab(it)
 
+    for epoch in range(10):
+       model.train(it)
+       model.alpha -= 0.002 # decrease the learning rate
+       model.min_alpha = model.alpha # fix the learning rate, no deca
+       model.train(it)
     model.save('./a2v.d2v')
+    logging.info("* Saving Doc2Vec Model !!!")
 
 
 def load_model():
+    logging.info("* Loading Doc2Vec Model ... ")
     model = Doc2Vec.load('a2v.d2v')
+    logging.info("* Loaded Saved Doc2Vec Model !!!")
     return model
-    # print (model.most_similar('invention'))
-    # print(model.docvecs[11])
 
 
 #TODO: also get authors and stuff
@@ -78,63 +80,70 @@ def get_data():
     filedir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
     files = os.listdir(filedir)
 
-    #Doc2Vec takes [['a', 'sentence'], 'and label']
     docLabels = [f for f in files if f.endswith('.txt')]
 
-    abstracts = [] #list of dicts with {"abstract": 2_23, "data": [['list', 'of', 'lists', 'with', 'strings'], [], .. [] ]}
-    patents = [] #list of dicts with {"patent": 2_US123, "data": [['list', 'of', 'lists', 'with', 'strings'], [], .. [] ]}
+    abstracts = [] 
+    patents = [] 
+    
     for doc in docLabels:
 
         list_of_sents = []
 
         if re.match(".*US.*", doc): #documents with "US" in it are patents 
-            patentloc = os.path.join( filedir, doc)
-            patent = open(patentloc, 'r')
-            patent_text = patent.read()
-            patent_sents = nltk.sent_tokenize(patent_text) #requires nltk.data()
-            for sent in patent_sents:
-                word_list = sent.split()
-                list_of_sents.append(word_list)
-            
-            pDict = {"patent": doc, "data": list_of_sents}
+            label = doc
+            pDict = {"label": label}
             patents.append(pDict)
         
         else: 
             abstractloc = os.path.join( filedir, doc)
             abstract = open(abstractloc, 'r')
-            abstract_text = abstract.read()
-            abstract_sents = nltk.sent_tokenize(abstract_text) #requires nltk.data()
-            for sent in abstract_sents:
-                word_list = sent.split()
-                list_of_sents.append(word_list)
+            abstract_lines = abstract.readlines()
+            authors = abstract_lines[0]
+            titles = abstract_lines[1]
+            label = doc
+           
 
-            aDict = {"abstract": doc, "data": list_of_sents}
+            aDict = {"label": label, "author": authors, "title": titles}
             abstracts.append(aDict)
 
     return abstracts, patents
 
 
+#TODO: print to csv
+def compare_patents_to_abstracts():
+    model = load_model()
+    abstracts, patents = get_data()
 
-# def compare_patents_to_abstracts():
-#     model = load_model()
-#     abstracts, patents = get_data()
+    for p in patents:
 
-#     for p in patents:
-#         p_id = p["patent"]
-#         p_number = re.sub("(\_US.*\.txt)", '', p_id)
-#         p_data = p["data"]
-#         for a in abstracts:
-#             if a["abstract"].startswith(p_number):
-                # sim = model.similarity([p_id], [a["abstract"]])
-                # print(sim)
-                ##### ##### get the cosine similarit
+        p_label = p["label"]
+        p_number = re.sub("(\_US.*\.txt)", '', p_label)
+        p_vec = model.docvecs[p_label] #Patent vector 
+        P = sparse.csr_matrix(p_vec) #Sparse Patent Vector 
+        for a in abstracts:
+            if a["label"].startswith( str(p_number)+"_" ):
+                a_label = a["label"]
+                a_authors = a["author"]
+                a_title = a["title"]
+
+                a_vec = model.docvecs[a_label]
+                A = sparse.csr_matrix(a_vec)
+                sim = cosine_similarity(P, A) #cos(patent, abstract)
+                print(str(p_label) + " is " + str(sim) + " similar to " + str(a_label))
+
+
+
         
 
 
 
 
-# compare_patents_to_abstracts()
+compare_patents_to_abstracts()
+# model = load_model()
+# print(model.docvecs['4_99.txt_7'])
+# print (model.most_similar('invention'))
+# print(model.docvecs[11])
+# print(model.docvecs.doctags)
 
-model = load_model()
-print(model.docvecs['4_99.txt_7'])
-#print(model.docvecs.doctags)
+
+
