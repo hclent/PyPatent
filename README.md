@@ -6,11 +6,11 @@
   - **main.py**
   - **readpatentpdf.py**
   - **readabstracttxt.py**
-  - TEXT Files (dir)
+  - TEXT_Files (dir containing initial data)
      * Patent 1 & literature searches (dir)
      *  ...
      * Patent N & literature searches (dir)
- - Train (dir)
+ - Train (dir containing pre-processed data) 
      * **abstract2vec.py**
      * **a2v.d2v** (the trained model)
      * training txt files converted from patents and abstracts   
