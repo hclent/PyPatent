@@ -17,23 +17,24 @@ logging.basicConfig(level=logging.DEBUG,
 
 #Run project
 def run_pypatent():
-	#Step 1:
+	#Step 1: Convert patents to .txts 
 	logging.info("* BEGIN CONVERTING PATENT PDF'S ... ")
 	convertPdfs()
 	logging.info("* FINISHED CONVERTING PATENT PDF'S !!!")
-	#Step 2:
+	#Step 2: Extract abstracts 
 	logging.info("* BEGIN RETRIEVING ABSTRACTS ... ")
 	retrieve_text_files()
 	logging.info("* FINISHED RETRIEVING ABSTRACTS !!! ")
-	#Step 3:
-	# path_to_model = os.path.abspath(os.path.join(os.path.dirname(__file__), 'train', './a2v.d2v'))
-	# if os.path.isfile(path_to_model):
-	# 	logging.info("* A TRAINED MODEL ALREADY EXISTS !!!")
-	# 	pass
-	# elif: 
-	# 	logging.info("* TRAINED MODEL NOT FOUND. TRAINING MODEL ... ")
-	# 	train_d2v()
-	# 	logging.info("* FINISHED TRAINING MODEL !!! ")
+	# Step 3: Train doc2vec 
+	path_to_model = os.path.abspath(os.path.join(os.path.dirname(__file__), 'train', './a2v.d2v'))
+	if os.path.isfile(path_to_model):
+		logging.info("* A TRAINED MODEL ALREADY EXISTS !!!")
+		pass
+	elif: 
+		logging.info("* TRAINED MODEL NOT FOUND. TRAINING MODEL ... ")
+		train_d2v()
+		logging.info("* FINISHED TRAINING MODEL !!! ")
+	# Step 4: Get results
 
 
 
