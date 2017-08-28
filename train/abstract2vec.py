@@ -10,8 +10,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy import sparse
 from operator import itemgetter
 
-
-#TO DO: Don't train on docs with all "Null"s 
+#TODO: 1) patent pdf's converted to txt are crap :'(
+#TODO: 2) deal with inconsistent formatting in certain patent collections 
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -35,9 +35,8 @@ class LabeledLineSentence(object):
         for idx, doc in enumerate(self.doc_list):
             yield LabeledSentence(doc.split(), [self.labels_list[idx]])
 
-'''
-Pre-processes the text by tokenizing it and removing stopwords
-'''
+
+#Pre-processes the text by tokenizing it and removing stopwords
 def clean_text(unprocessed_text):
     lower = unprocessed_text.lower()
     word_list = tokenizer.tokenize(lower)
@@ -45,16 +44,13 @@ def clean_text(unprocessed_text):
     clean_string = (' ').join(word_set)
     return clean_string 
 
-'''
-Function called to actually train our doc2vec model.
-'''
+
+#Function called to actually train our doc2vec model.
 def train_d2v():
     filedir = os.path.abspath(os.path.join(os.path.dirname(__file__))) 
     files = os.listdir(filedir)
-    print(len(files))
 
     docLabels = [f for f in files if f.endswith('.txt')]
-    print(len(docLabels))
 
     keep_labels = [] #not going to keep labels for Null Text docs 
     data = []
@@ -69,6 +65,7 @@ def train_d2v():
                 keep_text = the_text.rstrip()
                 clean_string = clean_text(keep_text)
                 data.append(clean_string)
+                keep_labels.append(doc)
             
             if not re.match(".*US.*", doc): #for abstracts, only get the abstract parts
                 #print("ABSTRACT: " + doc)
@@ -78,57 +75,42 @@ def train_d2v():
                     titles = the_text[3]
                     the_real_text = the_text[4:]
                     joined_text = (' ').join(the_real_text) #make it a string
-                    keep_text1 = joined_text.rstrip() #remove \n\t\r etc. 
+                    keep_text = joined_text.rstrip() #remove \n\t\r etc. 
                     clean_string = clean_text(keep_text) #pre-process the text
-                    # print(doc)
-                    # print(clean_string)
-                    # print("#" * 20)
-                    #data.append(clean_string)
 
-                    if re.match(".*Null\sText",clean_string):
-                        print("skilling Null....")
+                    if clean_string.startswith("null"): #skip training of "Null Text" docs
                         pass
                     else:
                         data.append(clean_string)
+                        keep_labels.append(doc)
                 except Exception as e: #if a document is empty skip it 
                     logging.info(e)
-            f.close()
 
-    print(len(data))
-    print(data[0])
-    print("#"*20)
-    print(data[50])
-    print("#"*20)
-    print(data[51])
-    print("#"*20)
-    print(data[100])
-    print("#"*20)
-    print(data[1000])
-
-
-    # logging.info("* Creating LabeledLineSentence Class ...")
-    # it = LabeledLineSentence(data, docLabels)
-    # logging.info("* Created LabeledLineSentences!!! ")
+    logging.info("* Creating LabeledLineSentence Class ...")
+    it = LabeledLineSentence(data, keep_labels) 
+    logging.info("* Created LabeledLineSentences!!! ")
    
-    # logging.info("* Initializing Doc2Vec Model ... ")
-    # model = gensim.models.Doc2Vec(size=300, window=10, min_count=5, workers=11,alpha=0.025, min_alpha=0.025) # use fixed learning rate
+    logging.info("* Initializing Doc2Vec Model ... ")
+    model = gensim.models.Doc2Vec(size=300, window=10, min_count=5, workers=11,alpha=0.025, min_alpha=0.025) # use fixed learning rate
     
-    # logging.info("* Training Doc2Vec Model ... ")
-    # model.build_vocab(it)
+    logging.info("* Training Doc2Vec Model ... ")
+    model.build_vocab(it)
 
-    # for epoch in range(10):
-    #    model.train(it)
-    #    model.alpha -= 0.002 # decrease the learning rate
-    #    model.min_alpha = model.alpha # fix the learning rate, no decay
-    #    model.train(it)
+    for epoch in range(10):
+       model.train(it)
+       model.alpha -= 0.002 # decrease the learning rate
+       model.min_alpha = model.alpha # fix the learning rate, no decay
+       model.train(it)
 
-    # model.save('./a2v.d2v')
-    # logging.info("* Saving Doc2Vec Model !!!")
+    model.save('./a2v.d2v')
+    logging.info("* Saving Doc2Vec Model !!!")
+
+    return keep_labels
 
 
-'''
-Function to load our saved model 
-'''
+
+
+#Function to load our saved model 
 def load_model():
     logging.info("* Loading Doc2Vec Model ... ")
     model = Doc2Vec.load('a2v.d2v')
@@ -136,13 +118,12 @@ def load_model():
     return model
 
 
-#TODO: also get authors and stuff
-def get_data():
+def get_data(keep_labels):
     #Obtain txt abstracts and txt patents 
     filedir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
     files = os.listdir(filedir)
 
-    docLabels = [f for f in files if f.endswith('.txt')]
+    docLabels = keep_labels #filtered out "Null Text" files 
 
     abstracts = [] 
     patents = [] 
@@ -169,12 +150,11 @@ def get_data():
     return abstracts, patents
 
 
-#TODO: print to csv
-def compare_patents_to_abstracts():
+def compare_patents_to_abstracts(keep_labels):
     results_list = []
 
     model = load_model()
-    abstracts, patents = get_data()
+    abstracts, patents = get_data(keep_labels)
 
     #sort patents
     sorted_patents = sorted(patents, key=itemgetter('label'))
@@ -191,17 +171,15 @@ def compare_patents_to_abstracts():
                 a_label = a["label"]
                 a_authors = (a["author"]).strip('\t\n\r')
                 a_title = (a["title"]).strip('\t\n\r')
-                if a_title is "Null Title" and a_authors is "Null Authors":
-                    pass
-                else:
-                    a_vec = model.docvecs[a_label]
-                    A = sparse.csr_matrix(a_vec)
-                    sim = cosine_similarity(P, A) #cos(patent, abstract) #
-                    percent = str((sim[0][0]) * 100) + "%"
+                
+                a_vec = model.docvecs[a_label]
+                A = sparse.csr_matrix(a_vec)
+                sim = cosine_similarity(P, A) #cos(patent, abstract) #
+                percent = str((sim[0][0]) * 100) + "%"
 
-                    # [patent_name, abstract_label, percent, abstract_title, abstract_authors ]
-                    r_list = [p_label, a_label, percent, a_title]
-                    results_list.append(r_list)
+                # [patent_name, abstract_label, percent, abstract_title, abstract_authors ]
+                r_list = [p_label, a_label, percent, a_title]
+                results_list.append(r_list)
                 
                 #print(str(p_label) + " is " + str(sim) + " similar to " + str(a_label))
     
@@ -215,13 +193,10 @@ def compare_patents_to_abstracts():
 
         
 
-train_d2v()
-#compare_patents_to_abstracts()
+#keep_labels = train_d2v()
+#compare_patents_to_abstracts(keep_labels)
 #model = load_model()
 #print(model.docvecs['98_US20050142162.txt'])
 # print (model.most_similar('invention'))
-# print(model.docvecs[11])
-# print(model.docvecs.doctags)
-
 
 
