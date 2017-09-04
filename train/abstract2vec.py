@@ -10,8 +10,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy import sparse
 from operator import itemgetter
 
-#TODO: 1) patent pdf's converted to txt are crap :'(
-#TODO: 2) deal with inconsistent formatting in certain patent collections 
+#TODO: add 17k biomed pubs to training 
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -57,7 +56,7 @@ def train_d2v():
     for doc in docLabels:
         #print(doc)
         source = os.path.abspath(os.path.join(os.path.dirname(__file__), doc))
-        with open(source, "r") as f:
+        with open(source, "r", encoding="ISO-8859-1") as f:
             
             if re.match(".*US.*", doc): #for patents 
                 #print("PATENT: " + doc)

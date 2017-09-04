@@ -1,5 +1,7 @@
 import re, sys, os, fnmatch, logging
 
+
+#Patents collections currently failing: #2, #17, #46, #98
 '''
 Input: Null
 Output: Takes each .txt file from patent directories for every
@@ -13,7 +15,6 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
                     filename='.pypatent.log')
-
 
 def retrieve_text_files():
 	logging.info("* Beginning retrieve_text_files(). Abstracts --> txt files ... ")
@@ -158,7 +159,7 @@ def retrieve_text_files():
 			'''
 			The only lit searches showing up with repeats are Patents 2, 17, 46
 			17 and 46 were excluded for bad formatting
-			2 ... will need to investivate. 
+			2 ... will need to investivate why nothing is retrieved here
 			'''
 			# unique_authors = list(set(authors))
 			# unique_titles = list(set(titles))
