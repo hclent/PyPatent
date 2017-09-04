@@ -63,9 +63,12 @@ def retrieve_text_files():
 							current_title = []
 							current_abstract = []
 
+
 							text_lines = record.splitlines()
 
-							for line in text_lines:
+							for i, line in enumerate(text_lines):
+								#print(str(i)+": " + str(line[:20]))
+								
 								#Get Author
 								#TODO: make startswith a regex!!!  
 								#if line.startswith("\tBy:"):
@@ -75,62 +78,99 @@ def retrieve_text_files():
 								elif re.match("^(\t*Author\(s\))", line):
 									current_author.append(line)
 									logging.info(line)
+								
 								#Get Title
 								if re.match("^(\t*Title\:)", line):
 									current_title.append(line)
 									logging.info(line)
+								
 								#Get Abstract
 								if re.match("^(\t*Abstract\:)", line):
 									current_abstract.append(line)
+									#print(line)
 									logging.info(line)
+									#TODO: get the next line
+
+								#if the previous line was Abstract:
+								if re.match("^(\t*Abstract\:)",text_lines[i-1]):
+									#and if this current line is longer than 100
+									if len(line) >= 100:
+										if not re.match("^(\t*Title\:)|Source|By|Author|Conference", line):
+											#print(line)
+											current_abstract.append(line)
+
+								#if there was "Abstract:" header two lines ago, 
+								# it may still be part of the abstract 
+								if re.match("^(\t*Abstract\:)",text_lines[i-2]):
+									#and if this current line is longer than 100
+									if len(line) >= 100:
+										if not re.match("^(\t*Title\:)|Source|By|Author|Conference", line):
+											#print(line)
+											current_abstract.append(line)
+									
+
+							print(len(current_abstract))
+							print("#"*20)
+
+
+
+
+
+							#TODO" FLATTEN THE ABSTRACT TEXT 
+
+
+
+
 
 							#Make sure this abstract has Author, Title, Abstractß
-							if (len(current_author)) == 0: #no author
-								empty_author = 'Null Author'
-								logging.info("Null Author")
-								authors.append(empty_author)
-							else:
-								authors.append(current_author[0])
+							# if (len(current_author)) == 0: #no author
+							# 	empty_author = 'Null Author'
+							# 	logging.info("Null Author")
+							# 	authors.append(empty_author)
+							# else:
+							# 	authors.append(current_author[0])
 
-							if (len(current_title)) == 0: #no title
-								empty_title = 'Null Title'
-								logging.info("Null Title")
-								titles.append(empty_title)
-							else:
-								titles.append(current_title[0])
+							# if (len(current_title)) == 0: #no title
+							# 	empty_title = 'Null Title'
+							# 	logging.info("Null Title")
+							# 	titles.append(empty_title)
+							# else:
+							# 	titles.append(current_title[0])
 
-							if (len(current_abstract)) == 0: #no abstract
-								empty_abstract = 'Null Abstract'
-								logging.info("Null Abstract")
-								abstracts.append(empty_abstract)
-							else:
-								abstracts.append(current_abstract[0])
-
-
-			logging.info("* Done extracting abstracts from this file... ")
-			logging.info(str(len(authors)) + " authors")
-			logging.info(str(len(titles)) + " titles")
-			logging.info(str(len(abstracts)) + " abstracts")
+							# if (len(current_abstract)) == 0: #no abstract
+							# 	empty_abstract = 'Null Abstract'
+							# 	logging.info("Null Abstract")
+							# 	abstracts.append(empty_abstract)
+							# else:
+							# 	abstracts.append(current_abstract[0])
 
 
-			# Print abstracts to 'train' folder
-			print_info = list(zip(authors, titles, abstracts))
-			logging.info("* printing abstracts to txt")
-			for i in range(0, len(print_info)):
-				abstract_name = str(patent_number) + '_' +str(i) + '.txt'
-				completeName = os.path.join(traindir, abstract_name)
-				logging.info(completeName)
-				sys.stdout = open(completeName, "w")
-				print(print_info[i][0]) #line 0 will be author
-				print('\n')
-				print(print_info[i][1]) #line 1 will be title
-				print('\n')
-				print(print_info[i][2]) #line 2 will be abstract
-				print('\n')
+
+
+			# logging.info("* Done extracting abstracts from this file... ")
+			# logging.info(str(len(authors)) + " authors")
+			# logging.info(str(len(titles)) + " titles")
+			# logging.info(str(len(abstracts)) + " abstracts")
+
+
+			# # Print abstracts to 'train' folder
+			# print_info = list(zip(authors, titles, abstracts))
+			# logging.info("* printing abstracts to txt")
+			# for i in range(0, len(print_info)):
+			# 	abstract_name = str(patent_number) + '_' +str(i) + '.txt'
+			# 	completeName = os.path.join(traindir, abstract_name)
+			# 	logging.info(completeName)
+			# 	sys.stdout = open(completeName, "w")
+			# 	print(print_info[i][0]) #line 0 will be author
+			# 	print('\n')
+			# 	print(print_info[i][1]) #line 1 will be title
+			# 	print('\n')
+			# 	print(print_info[i][2]) #line 2 will be abstract
+			# 	print('\n')
 
 		except Exception as e: #probably a .DS_Store file
 			logging.info(e)
 
 
-#retrieve_text_files()
+retrieve_text_files()
 
