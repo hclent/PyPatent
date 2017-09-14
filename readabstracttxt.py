@@ -46,7 +46,8 @@ def retrieve_text_files():
 			search_docs = os.listdir(pd_path)
 			for txtfile in search_docs:
 				#the files for #128 are incorrect but files starting with just 128 are fine
-				if txtfile.startswith("#128") or txtfile.startswith("#17") or txtfile.startswith("#46"):
+				# #46 and #17 have been fixed 
+				if txtfile.startswith("#128"):
 					'''
 					Missing ---------- dividers between search records:
 					#17 Records Search parts 1-10
