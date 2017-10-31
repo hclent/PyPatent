@@ -9,9 +9,9 @@ from gensim.models import Doc2Vec
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy import sparse
 from operator import itemgetter
+from sqlalchemy import create_engine, MetaData, Table, select
 
-#TODO: add 17k biomed pubs to training 
-
+ 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
@@ -50,9 +50,11 @@ def train_d2v():
     files = os.listdir(filedir)
 
     docLabels = [f for f in files if f.endswith('.txt')]
+    logging.info(docLabels)
 
     keep_labels = [] #not going to keep labels for Null Text docs 
     data = []
+    logging.info("reading through patents and abstracts ... ")
     for doc in docLabels:
         #print(doc)
         source = os.path.abspath(os.path.join(os.path.dirname(__file__), doc))
@@ -84,6 +86,35 @@ def train_d2v():
                         keep_labels.append(doc)
                 except Exception as e: #if a document is empty skip it 
                     logging.info(e)
+    logging.info("done reading through patents and abstracts!!")
+
+    #Now add the database stuff
+    logging.info("Now going to add the database stuff!")
+    engine = create_engine('sqlite:///mimic.db')
+    logging.info("initiated database engine")
+    conn = engine.connect()
+    logging.info("setting metadata")
+    metadata = MetaData(bind=engine) #init metadata. will be empty
+    metadata.reflect(engine) #retrieve db info for metadata (tables, columns, types)
+    mydata = Table('mydata', metadata)
+    logging.info("metadata set!!!")
+
+    #Query db for index and text
+    logging.info("beginning db query")    
+    s = select([mydata.c.index, mydata.c.TEXT])
+    result = conn.execute(s)
+    logging.info("retrieved result form db!")
+    for row in result:
+        #label
+        index = row["index"]
+        index_label = "mimic" + str(index)
+        keep_labels.append(index_label)
+        #text
+        the_text = row["TEXT"]
+        keep_text = the_text.rstrip()
+        clean_string = clean_text(keep_text)
+        data.append(clean_string)
+    logging.info("done appending MIMIC texts+labels to data and keep_labels")
 
     logging.info("* Creating LabeledLineSentence Class ...")
     it = LabeledLineSentence(data, keep_labels) 
@@ -101,7 +132,8 @@ def train_d2v():
        model.min_alpha = model.alpha # fix the learning rate, no decay
        model.train(it)
 
-    model.save('./a2v.d2v')
+    #model.save('./a2v.d2v')
+    model.save('./pypatent.d2v')
     logging.info("* Saving Doc2Vec Model !!!")
 
     return keep_labels
@@ -110,9 +142,10 @@ def train_d2v():
 
 
 #Function to load our saved model 
-def load_model():
+def load_model(model_dot_d2v):
     logging.info("* Loading Doc2Vec Model ... ")
-    model = Doc2Vec.load('a2v.d2v')
+    #model = Doc2Vec.load('a2v.d2v')
+    model = Doc2Vec.load(model_dot_d2v)
     logging.info("* Loaded Saved Doc2Vec Model !!!")
     return model
 
@@ -133,7 +166,9 @@ def get_data(keep_labels):
             label = doc
             pDict = {"label": label}
             patents.append(pDict)
-        
+
+        elif doc.startswith('mimic'): #we don't want mimic data
+            pass
         else: 
             abstractloc = os.path.join( filedir, doc)
             abstract = open(abstractloc, 'r')
@@ -152,7 +187,7 @@ def get_data(keep_labels):
 def compare_patents_to_abstracts(keep_labels):
     results_list = []
 
-    model = load_model()
+    model = load_model('pypatent.d2v')
     abstracts, patents = get_data(keep_labels)
 
     #sort patents
@@ -179,10 +214,10 @@ def compare_patents_to_abstracts(keep_labels):
                 # [patent_name, abstract_label, percent, abstract_title, abstract_authors ]
                 r_list = [p_label, a_label, percent, a_title]
                 results_list.append(r_list)
-                
-                #print(str(p_label) + " is " + str(sim) + " similar to " + str(a_label))
+            
+            #print(str(p_label) + " is " + str(sim) + " similar to " + str(a_label))
     
-    with open('results.csv', 'w') as csvfile:
+    with open('FINALresults.csv', 'w') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',',
             quotechar='|', quoting=csv.QUOTE_MINIMAL)
         filewriter.writerow(['PatentName', 'AbstractFile', 'PercentSimilarity', 'AbstractTitle'])
@@ -194,7 +229,7 @@ def compare_patents_to_abstracts(keep_labels):
 
 #keep_labels = train_d2v()
 #compare_patents_to_abstracts(keep_labels)
-#model = load_model()
+#model = load_model('pypatent.d2v')
 #print(model.docvecs['98_US20050142162.txt'])
 # print (model.most_similar('invention'))
 
